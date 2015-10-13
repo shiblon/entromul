@@ -8,55 +8,54 @@
     <script src="js/multiplication-drill.js"></script>
     <script>
       $(function() {
-        var drill = new MultiplicationDrill('_canvas', {
-          numProblems: 10,
-          onfinished: function(correct, wrong, elapsed, paused) {
-            console.log('FINISHED');
-            console.log('correct', correct);
-            console.log('wrong', wrong);
-            console.log('elapsed', elapsed);
-            console.log('paused', paused);
+        function makeDrill() {
+          var numProblems = +$('#_drillsize').val();
+          alert(numProblems);
+          var drill = new MultiplicationDrill('_canvas', {
+            numProblems: numProblems,
+            onfinished: function(correct, wrong, elapsed, paused) {
+              console.log('FINISHED');
+              console.log('correct', correct);
+              console.log('wrong', wrong);
+              console.log('elapsed', elapsed);
+              console.log('paused', paused);
 
-            var wrongStrs = [];
-            for (var i = 0; i < wrong.length; i++) {
-              var w = wrong[i],
-                  m1 = w[0],
-                  m2 = w[1],
-                  a = w[2];
-              wrongStrs.push(
-                  '<li>' + m1 + ' \u00D7 ' + m2 + ' = ' +
-                  (m1 * m2) + '    - you wrote ' + a + '</li>');
-            }
+              var wrongStrs = [];
+              for (var i = 0; i < wrong.length; i++) {
+                var w = wrong[i],
+                    m1 = w[0],
+                    m2 = w[1],
+                    a = w[2];
+                wrongStrs.push(
+                    '<li>' + m1 + ' \u00D7 ' + m2 + ' = ' +
+                    (m1 * m2) + '    - you wrote ' + a + '</li>');
+              }
 
-            var wrongOutput = '';
-            if (wrongStrs.length > 0) {
-              wrongOutput = 'Wrong answers:<ul>' + wrongStrs.join('\n') + '</ul>';
-            }
+              var wrongOutput = '';
+              if (wrongStrs.length > 0) {
+                wrongOutput = 'Wrong answers:<ul>' + wrongStrs.join('\n') + '</ul>';
+              }
 
-            var stats = $('#_stats');
-            stats[0].innerHTML = stats[0].innerHTML
-            .replace(/%correct%/, correct.length)
-            .replace(/%total%/, correct.length + wrong.length)
-            .replace(/%elapsed%/, elapsed)
-            .replace(/%paused%/, paused)
-            .replace(/%wrongAnswers%/, wrongOutput);
-            stats.show();
-          },
-        });
-
-        function onkeypress(e) {
-          console.log(e);
-          if (e.keyCode != 32) {
-            return;
-          }
-          $('#_instructions').hide();
-          window.removeEventListener('keypress', onkeypress);
-          e.preventDefault();
-          drill.start();
+              var stats = $('#_stats');
+              stats[0].innerHTML = stats[0].innerHTML
+              .replace(/%correct%/, correct.length)
+              .replace(/%total%/, correct.length + wrong.length)
+              .replace(/%elapsed%/, elapsed)
+              .replace(/%paused%/, paused)
+              .replace(/%wrongAnswers%/, wrongOutput);
+              stats.show();
+            },
+          });
+          return drill;
         }
 
-        window.addEventListener('keypress', onkeypress);
+        function startDrill() {
+          $('#_instructions').hide();
+          var drill = makeDrill();
+          drill.start();
+        }
         $('#_stats').hide();
+        window.startDrill = startDrill;
       });
     </script>
     <style>
@@ -70,7 +69,13 @@
       <canvas id="_canvas" width="640" height="480"></canvas>
     </div>
     <div id="_instructions">
-      Press Space to start (and to pause once started).
+      Do <select id="_drillsize" name="drillsize">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select> problems.
+      <input type="button" onclick="startDrill();" value="Start"></input>
     </div>
     <div id="_stats">
       You got <b>%correct%</b> correct out of <b>%total%</b>.<br>
