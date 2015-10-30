@@ -1,4 +1,5 @@
 (function(_, $, undefined) {
+"strict";
 
 function _generateProblems(r1, r2, n) {
   // Generate cartesian product, shuffle, and take n.
@@ -13,283 +14,107 @@ function _generateProblems(r1, r2, n) {
   return _.take(_.shuffle(prod), n);
 }
 
+function _getElement(el) {
+  return (typeof el === 'string') ? $('#' + el) : $(el);
+}
+
 function formatTime(t_s) {
-  var s = ':' + _.padLeft('' + Math.floor(t_s) % 60, 2, '0'),
-      m = ':' + _.padLeft('' + Math.floor(t_s / 60) % 60, 2, '0'),
+  var s = _.padLeft('' + Math.floor(t_s) % 60, 2, '0'),
+      m = _.padLeft('' + Math.floor(t_s / 60) % 60, 2, '0'),
       h = _.padLeft('' + Math.floor(t_s / 3600), 2, '0');
 
-  if (h === '00') {
-    h = '';
-    if (m == ':00') {
-      m = '';
-    }
-  }
-  return h + m + s;
+  h = (h === '00') ? '' : h + ':';
+
+  return h + m + ':' + s;
 }
 
-function drawProgress(canvas, i, n, elapsed_ms) {
-  var h = 20;
-  var progressProps = {
-    text: '' + i + ' / ' + n,
-    fillStyle: 'black',
-    fontFamily: 'serif',
-    fontSize: h + 'px',
-    fontWeight: 'normal',
-    x: 0, y: 0,
-    fromCenter: false,
-  };
+MultiplicationDrill = function(parent, config) {
+  parent = _getElement(parent);
 
-  var elapsedProps = {
-    text: formatTime(Math.floor(elapsed_ms / 1000)),
-    fillStyle: 'black',
-    fontFamily: 'serif',
-    fontSize: h + 'px',
-    fontWeight: 'bold',
-    x: 0, y: 0,
-    fromCenter: false,
-  };
-  var elapsedWidth = canvas.measureText(elapsedProps).width;
-  elapsedProps.x = canvas[0].width - elapsedWidth;
-
-  canvas.drawText(progressProps);
-  canvas.drawText(elapsedProps);
-}
-
-function drawProblem(canvas, mpair, answer) {
-  var h = 40;
-  var q = '' + mpair[0] + ' \u00D7 ' + mpair[1] + ' =  ';
-  canvas[0].style.fontSize = h + 'px';
-  var questionProps = {
-    text: q,
-    fillStyle: 'black',
-    fontFamily: 'serif',
-    fontSize: h + 'px',
-    fontWeight: 'bold',
-    maxWidth: canvas[0].width,
-    x: 0,
-    y: (canvas[0].height - h) / 2,
-    fromCenter: false,
-  };
-
-  var blankProps = _.clone(questionProps);
-  blankProps.text = '_____';
-
-  var answerProps = _.clone(questionProps);
-  answerProps.text = answer;
-
-  var qw = canvas.measureText(questionProps).width;
-  var bw = canvas.measureText(blankProps).width;
-  var aw = canvas.measureText(answerProps).width;
-
-  questionProps.x = (canvas[0].width - qw - bw) / 2;
-  blankProps.x = questionProps.x + qw;
-
-  var answerOffset = (bw - aw) / 2;
-  answerProps.x = blankProps.x + answerOffset;
-
-  canvas.drawText(questionProps);
-  canvas.drawText(blankProps);
-  canvas.drawText(answerProps);
-}
-
-function StatsBanner(w, h, duration, numCorrect, totalProblems) {
-  this.duration = duration;
-  this.timeleft = duration;
-  this.numCorrect = numCorrect;
-  this.numTotal = totalProblems;
-
-  this.canvas = $('<canvas/>')
-  .attr({width: w, height: h})
-  .height(h)
-  .drawRect({
-    fillStyle: '#fff',
-    x: 0, y: 0,
-    width: w,
-    height: h,
-  })
-  .drawText({
-    text: '' + this.numCorrect + ' / ' + this.numTotal,
-    fillStyle: '#000',
-    fontSize: '40px',
-    x: w / 2,
-    y: h / 2,
-    fromCenter: true,
-  });
-};
-
-StatsBanner.prototype.tick = function(dt) {
-  this.timeleft -= dt;
-  if (this.timeleft <= 0) {
-    return false;
-  }
-};
-
-StatsBanner.prototype.draw = function(canvas) {
-  canvas.clearCanvas();
-  var opacity = 1 - (this.timeleft / this.duration);
-  canvas.drawImage({
-    x: 0, y: 0,
-    fromCenter: false,
-    source: this.canvas[0],
-    opacity: opacity,
-  });
-};
-
-function CountdownBanner(count) {
-  this.count = count;
-  this.elapsed = 0;
-  this.nextTrigger = 1000;
-}
-
-CountdownBanner.prototype.draw = function(canvas) {
-  canvas.clearCanvas()
-  .drawText({
-    fontSize: (canvas[0].height / 4) + 'px',
-    fontWeight: 'bold',
-    fontFamily: 'serif',
-    fillStyle: 'black',
-    x: canvas[0].width / 2,
-    y: canvas[0].height / 2,
-    text: "" + this.count,
-  });
-};
-
-CountdownBanner.prototype.tick = function(dt) {
-  if (this.count <= 0) {
-    return false;
-  }
-
-  this.elapsed += dt;
-  if (this.elapsed >= this.nextTrigger) {
-    this.count--;
-    if (this.count <= 0) {
-      return false;
-    }
-    this.nextTrigger += 1000;
-  }
-  return true;
-};
-
-function PauseBanner(w, h) {
-  this.w = w;
-  this.h = h;
-
-  var fh = Math.ceil(h / 2);
-
-  this.canvas = $('<canvas/>').attr({width: w, height: h})
-  .translateCanvas({
-    translateX: w/2,
-    translateY: h/2,
-  })
-  .drawRect({
-    fillStyle: '#add8e6',
-    opacity: 0.9,
-    x: 0, y: 0,
-    width: w, height: h,
-  })
-  .drawLine({
-    strokeStyle: 'black',
-    strokeWidth: 2,
-    opacity: 0.9,
-    x1: 0, y1: 0,
-    x2: w, y1: 0,
-  })
-  .drawLine({
-    strokeStyle: 'black',
-    strokeWidth: 2,
-    opacity: 0.9,
-    x1: 0, y1: h,
-    x2: w, y1: h,
-  })
-  .drawText({
-    text: 'Paused',
-    fillStyle: 'black',
-    fontSize: fh,
-    fontFamily: 'serif',
-    fontWeight: 'bold',
-  });
-}
-
-PauseBanner.prototype.draw = function(canvas) {
-  var w = canvas[0].width;
-  var h = canvas[0].height;
-  canvas.drawImage({
-    source: this.canvas[0],
-    x: w / 2, y: h / 2,
-  })
-};
-
-MultiplicationDrill = function(canvasID, config) {
   config = config || {};
-  var canvas = $('#' + canvasID);
-  var answer = '';
-  var elapsed = 0;
-
   var range1 = config.range1 || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   var range2 = config.range2 || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   var numProblems = config.numProblems || 10;
 
-  var onfinished = config.onfinished || function() {};
+  var onFinished = config.onFinished || function() {};
 
   var problems = _generateProblems(range1, range2, numProblems);
   var answers = [];
   var cur = 0;
-
-  var paused = false;
-  var running = false;
-
-  var pauseBanner = new PauseBanner(canvas[0].width, canvas[0].height / 3);
   var numPauses = 0;
 
-  function makeStatsBB(correct, total) {
-    var statsBanner = new StatsBanner(canvas[0].width, canvas[0].height,
-                                      1000, correct, total);
-    return bigbang(window, {
-      ondraw: function() {
-        statsBanner.draw(canvas);
-      },
-      ontick: function(t, dt) {
-        statsBanner.tick(dt);
-      },
-    });
+  var fields = this._makeContainer(parent);
+
+  function showProgress() {
+    if (cur >= numProblems) {
+      fields.progress.text('Done');
+    } else {
+      fields.progress.text((cur + 1) + ' / ' + numProblems);
+    }
   }
 
-  var gameBB = this.gameBB = bigbang(window, {
+  function showClock() {
+    fields.clock.text(formatTime(elapsed));
+  }
+
+  function showProblem() {
+    if (cur >= numProblems) {
+      fields.problem.hide();
+      return;
+    }
+    fields.problem.show();
+    var q1 = problems[cur][0],
+        q2 = problems[cur][1];
+    fields.question.text(q1 + ' \u00D7 ' + q2 + ' =  ');
+  }
+
+  fields.body.hide();
+  fields.pauseBody.hide();
+
+  fields.answerForm.submit(function(e) {
+    e.preventDefault();
+    if (!running) {
+      return false;
+    }
+    var answer = fields.answer.val();
+    if (answer === '') {
+      return false;
+    }
+    cur++;
+    answers.push(answer);
+
+    fields.answer.val('');
+    showProblem();
+    return false;
+  });
+
+  var elapsed = 0;
+  var running = false;
+  var paused = false;
+
+  var bb = bigbang(parent[0], {
+    interval: 100,
     onstart: function() {
-      elapsed = 0;
-      cur = 0;
-    },
-    ontick: function(t_ms, dt_ms) {
-      elapsed = t_ms;
-      if (cur >= problems.length) {
-        cur = problems.length - 1;
-        gameBB.stop();
-      }
-    },
-    ondraw: function() {
-      canvas.clearCanvas();
-      drawProgress(canvas, cur+1, problems.length, elapsed);
-      drawProblem(canvas, problems[cur], answer);
+      running = true;
+      paused = false;
+      fields.pauseBody.hide();
+      fields.body.show();
+      showProblem();
     },
     onpause: function() {
+      running = true;
       paused = true;
-      running = true;
       numPauses++;
-      pauseBanner.draw(canvas);
-      console.log('paused');
-    },
-    onstart: function() {
-      paused = false;
-      running = true;
-      console.log('started');
+      fields.body.hide();
+      fields.pauseBody.show();
+      fields.answerForm.focus();
     },
     onstop: function() {
-      paused = false;
       running = false;
-      console.log('stopped');
+      paused = false;
 
       var correct = [],
-          wrong = [];
+        wrong = [];
       for (var i = 0; i < problems.length; i++) {
         var prob = problems[i],
             m1 = prob[0]|0,
@@ -301,78 +126,275 @@ MultiplicationDrill = function(canvasID, config) {
           wrong.push([m1, m2, a]);
         }
       }
-      onfinished(correct, wrong, formatTime(elapsed/1000), numPauses);
-      makeStatsBB(correct.length, problems.length).start();
+      onFinished(correct, wrong, formatTime(elapsed), numPauses);
     },
-    onkey: function(e) {
-      if (!running) {
-        return;
-      }
-      if (e.type === 'keydown' && e.keyCode == 8) { // backspace
-        if (answer.length > 0) {
-          answer = answer.slice(0, answer.length-1);
-        }
-        e.preventDefault();
-        return;
-      }
-      if (e.type !== 'keypress') {
-        return;
-      }
-      e.preventDefault();
-
-      if (e.keyCode === 32) { // space
-        if (paused) {
-          gameBB.start();
-        } else {
-          gameBB.pause();
-        }
-        return;
-      }
-      if (paused) {
-        return;
-      }
-
-      if (e.keyCode === 13) { // return
-        // check answer, unless no answer yet given
-        if (answer === '') {
-          console.log('no answer - ignoring return');
-          return;
-        }
-        answers.push(answer|0);
-        // Go to the next problem.
-        answer = '';
-        cur++;
-        return;
-      }
-
-      if (e.charCode >= 48 && e.charCode < 58) { // digit
-        if (answer.length >= 5) {
-          console.log('answer too long - ignoring', answer);
-          return;
-        }
-        answer += String.fromCharCode(e.charCode);
-      }
-    },
-  });
-
-  var countdownBanner = new CountdownBanner(3);
-  var countdownBB = this.countdownBB = bigbang(window, {
     ontick: function(t, dt) {
-      if (countdownBanner.tick(dt) === false) {
+      elapsed = t / 1000;
+      if (cur >= numProblems) {
         return false;
       }
-    },
-    ondraw: function() {
-      countdownBanner.draw(canvas);
-    },
-    onstop: function() {
-      gameBB.start();
+      showClock();
+      showProgress();
+      fields.answer.focus();
     },
   });
-}
 
-MultiplicationDrill.prototype.start = function() {
-  this.countdownBB.start();
+  this.start = bb.start;
+  this.stop = bb.stop;
+  this.pause = bb.pause;
+};
+
+MultiplicationDrill.prototype._makeContainer = function(parent) {
+  // Create a game div with a slim header and footer, and with the problems
+  // centered in the main section.
+  var container = $('<div>')
+  .attr({'id': 'container'})
+  .css({
+    'position': 'relative',
+    'width': '100%',
+    'height': '100%',
+  });
+
+  var clockCell = $('<span>');
+  var progressCell = $('<span>');
+
+  var header = $('<table>')
+  .attr({'id': 'header'})
+  .css({
+    'position': 'absolute',
+    'top': 0,
+    'left': 0,
+    'height': '5%',
+    'width': '100%',
+    'padding': '2px 10px 2px 10px',
+    'font-size': '20pt',
+    'font-weight': 'bold',
+    'font-family': 'sans-serif,arial,helvetica',
+  })
+  .append($('<tr>')
+          .append($('<td>')
+                  .attr({'id': 'headleft'})
+                  .css({
+                    'width': '50%',
+                    'text-align': 'left',
+                  })
+                  .append(progressCell))
+          .append($('<td>')
+                  .attr({'id': 'headright'})
+                  .css({
+                    'width': '50%',
+                    'text-align': 'right',
+                  })
+                  .append(clockCell)))
+                  .appendTo(container);
+
+  var footer = $('<table>')
+  .attr({'id': 'footer'})
+  .css({
+    'position': 'absolute',
+    'bottom': 0,
+    'left': 0,
+    'height': '5%',
+    'width': '100%',
+    'padding': '2px 10px 2px 10px',
+    'font-size': '20pt',
+    'font-weight': 'bold',
+    'font-family': 'sans-serif,arial,helvetica',
+  })
+  .append($('<tr>')
+          .append($('<td>')
+                  .attr({'id': 'footleft'})
+                  .css({
+                    'width': '50%',
+                    'text-align': 'left',
+                  }))
+          .append($('<td>')
+                  .attr({'id': 'footright'})
+                  .css({
+                    'width': '50%',
+                    'text-align': 'right',
+                  })))
+  .appendTo(container);
+
+  var body = $('<div>')
+  .attr({'id': 'body'})
+  .css({
+    'position': 'absolute',
+    'top': 0,
+    'bottom': 0,
+    'left': 0,
+    'right': 0,
+    'padding': '5% 2px 5% 2px',
+    'font-weight': 'bold',
+    'font-family': 'sans-serif,arial,helvetica',
+    'font-size': '25pt',
+    'text-align': 'center',
+  })
+  .appendTo(container);
+
+  var pauseBody = $('<div>')
+  .attr({'id': 'pauseBody'})
+  .css({
+    'position': 'absolute',
+    'top': 0,
+    'bottom': 0,
+    'left': 0,
+    'right': 0,
+    'padding': '5% 2px 5% 2px',
+    'font-weight': 'bold',
+    'font-family': 'sans-serif,arial,helvetica',
+    'font-size': '40pt',
+    'text-align': 'center',
+  })
+  .append($('<span>')
+          .attr({'id': 'pause'})
+          .css({
+            'position': 'absolute',
+            'left': 0,
+            'right': 0,
+            'top': '50%',
+            'transform': 'translateY(-50%)',
+            'text-align': 'center',
+          })
+          .text('PAUSED'))
+  .appendTo(container);
+
+  var answerForm = $('<form>').appendTo(body);
+
+  var problem = $('<span>')
+  .attr({'id': 'problem'})
+  .css({
+    'position': 'absolute',
+    'left': 0,
+    'right': 0,
+    'top': '50%',
+    'transform': 'translateY(-50%)',
+    'text-align': 'center',
+  })
+  .appendTo(answerForm);
+
+  var question = $('<span>')
+  .attr({'id': 'question'})
+  .text('problem = ')
+  .appendTo(problem);
+
+  var answer = $('<input>')
+  .attr({
+    'id': 'answer',
+    'type': 'number',
+    'size': 5,
+    'autofocus': true,
+  })
+  .css({
+    'border': 0,
+    'border-bottom': '3px solid black',
+    'font-size': '25pt',
+    'width': '3em',
+  })
+  .appendTo(problem);
+
+  parent.append(container);
+
+  return {
+    'container': container,
+    'clock': clockCell,
+    'body': body,
+    'pauseBody': pauseBody,
+    'progress': progressCell,
+    'problem': problem,
+    'question': question,
+    'answer': answer,
+    'answerForm': answerForm,
+  };
+};
+
+Countdown = function(parent, config) {
+  config = config || {};
+
+  var onFinished = config.onFinished || function() {};
+
+  parent = _getElement(parent);
+
+  var remaining = 3;
+  var nextDecrement = 1000;
+
+  var fields = this._makeContainer(parent);
+
+  fields.counter.hide();
+  fields.counter.text(remaining);
+
+  var bb = bigbang(parent[0], {
+    interval: 100,
+    ontick: function(t, dt) {
+      if (t >= nextDecrement) {
+        nextDecrement += 1000;
+        remaining--;
+        if (remaining === -1) {
+          return false;
+        }
+      }
+      if (remaining === 0) {
+        fields.counter.text('Go!');
+      } else {
+        fields.counter.text(remaining);
+      }
+    },
+    onstart: function() {
+      fields.counter.show();
+    },
+    onstop: function() {
+      onFinished();
+    },
+  });
+
+  this.start = bb.start;
+  this.stop = bb.stop;
+  this.pause = bb.pause;
+};
+
+Countdown.prototype._makeContainer = function(parent) {
+  var container = $('<div>')
+  .attr({'id': 'container'})
+  .css({
+    'position': 'relative',
+    'width': '100%',
+    'height': '100%',
+  });
+
+  var body = $('<div>')
+  .attr({'id': 'body'})
+  .css({
+    'position': 'absolute',
+    'top': 0,
+    'left': 0,
+    'right': 0,
+    'bottom': 0,
+    'font-weight': 'bold',
+    'font-size': '50pt',
+    'font-family': 'sans-serif,arial,helvetica',
+    'text-align': 'center',
+  })
+  .appendTo(container);
+
+  var counter = $('<span>')
+  .attr({'id': 'counter'})
+  .css({
+    'position': 'absolute',
+    'left': 0,
+    'right': 0,
+    'top': '50%',
+    'transform': 'translateY(-50%)',
+    'text-align': 'center',
+  })
+  .appendTo(body);
+
+  parent.append(container);
+
+  return {
+    'container': container,
+    'body': body,
+    'counter': counter,
+  };
 };
 
 }(_, $));

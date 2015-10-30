@@ -8,80 +8,170 @@
     <script src="js/multiplication-drill.js"></script>
     <script>
       $(function() {
-        function makeDrill() {
-          var numProblems = +$('#_drillsize').val();
-          alert(numProblems);
-          var drill = new MultiplicationDrill('_canvas', {
+        "strict";
+
+        var numProblems = 10;
+
+        var frames = {
+          start: $('#_instructions'),
+          stats: $('#_stats'),
+          game: $('#_game'),
+        };
+
+        window._showFrame = function (fr) {
+          for (var f in frames) {
+            if (f !== fr) {
+              frames[f].hide();
+            } else {
+            frames[f].show();
+            }
+          }
+        }
+
+        function showStats(correct, wrong, elapsed, paused) {
+          console.log('FINISHED');
+          console.log('correct', correct);
+          console.log('wrong', wrong);
+          console.log('elapsed', elapsed);
+          console.log('paused', paused);
+
+          var wrongStrs = [];
+          for (var i = 0; i < wrong.length; i++) {
+            var w = wrong[i],
+                m1 = w[0],
+                m2 = w[1],
+                a = w[2];
+            wrongStrs.push(
+                '<li>' + m1 + ' \u00D7 ' + m2 + ' = ' +
+                (m1 * m2) + '    - you wrote ' + a + '</li>');
+          }
+
+          var wrongOutput = '';
+          if (wrongStrs.length > 0) {
+            wrongOutput = 'Wrong answers:<ul>' + wrongStrs.join('\n') + '</ul>';
+          }
+
+          var statsTpl = $('#_statsTemplate').html();
+          $('#_stats').html(statsTpl
+                            .replace(/%correct%/, correct.length)
+                            .replace(/%total%/, correct.length + wrong.length)
+                            .replace(/%elapsed%/, elapsed)
+                            .replace(/%paused%/, paused)
+                            .replace(/%wrongAnswers%/, wrongOutput));
+
+          _showFrame('stats');
+        }
+
+        function newGame() {
+          var target = $('#_game');
+          target.empty();
+
+          var game = new MultiplicationDrill(target, {
             numProblems: numProblems,
-            onfinished: function(correct, wrong, elapsed, paused) {
-              console.log('FINISHED');
-              console.log('correct', correct);
-              console.log('wrong', wrong);
-              console.log('elapsed', elapsed);
-              console.log('paused', paused);
-
-              var wrongStrs = [];
-              for (var i = 0; i < wrong.length; i++) {
-                var w = wrong[i],
-                    m1 = w[0],
-                    m2 = w[1],
-                    a = w[2];
-                wrongStrs.push(
-                    '<li>' + m1 + ' \u00D7 ' + m2 + ' = ' +
-                    (m1 * m2) + '    - you wrote ' + a + '</li>');
-              }
-
-              var wrongOutput = '';
-              if (wrongStrs.length > 0) {
-                wrongOutput = 'Wrong answers:<ul>' + wrongStrs.join('\n') + '</ul>';
-              }
-
-              var stats = $('#_stats');
-              stats[0].innerHTML = stats[0].innerHTML
-              .replace(/%correct%/, correct.length)
-              .replace(/%total%/, correct.length + wrong.length)
-              .replace(/%elapsed%/, elapsed)
-              .replace(/%paused%/, paused)
-              .replace(/%wrongAnswers%/, wrongOutput);
-              stats.show();
-            },
+            onFinished: showStats,
           });
-          return drill;
+
+          _showFrame('game');
+          game.start();
+        }
+
+        function newCountdown() {
+          var target = $('#_game');
+          target.empty();
+
+          var countdown = new Countdown(target, {
+            onFinished: function() {
+              newGame(target);
+            },
+          })
+
+          _showFrame('game');
+          countdown.start();
         }
 
         function startDrill() {
-          $('#_instructions').hide();
-          var drill = makeDrill();
-          drill.start();
+          numProblems = +$('#_drillsize').val();
+          newCountdown('_game');
         }
-        $('#_stats').hide();
+
+        _showFrame('start');
         window.startDrill = startDrill;
       });
     </script>
     <style>
-      #_canvas {
-        border: 1px solid black;
+      #_mainContainer {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border: solid gray 1px;
+      }
+      .largeText option {
+        font-size: 20pt;
+        font-family: sans-serif;
+        font-weight: bold;
+      }
+      .gameContents {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 20pt;
+        font-family: sans-serif,arial,helvetica;
+        font-weight: bold;
+      }
+      #_game,#_stats {
+        display: none;
+      }
+      #_stats {
+        font-size: 20pt;
+        font-family: serif;
+        font-weight: normal;
+      }
+      #_instructions {
+        padding: 10px 5px;
+      }
+      select#_drillsize {
+        -webkit-appearance: menulist-button;
+        font-size: 20pt;
+      }
+      #_startSpan {
+        position: absolute;
+        text-align: center;
+        left: 0;
+        right: 0;
+        top: 50%;
+        transform: transformY(-50%);
+      }
+      input#_startBtn {
+        -webkit-appearance: button;
+        font-size: 30pt;
       }
     </style>
   </head>
   <body>
-    <div id="_game">
-      <canvas id="_canvas" width="640" height="480"></canvas>
+    <div id="_mainContainer">
+      <div id="_game" class="gameContents"></div>
+      <div id="_instructions" class="gameContents">
+        Do <select id="_drillsize" name="drillsize">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select> problems.
+        <br>
+        <span id="_startSpan"><input id="_startBtn" type="button" onclick="startDrill();" value="Start"></input></span>
+      </div>
+      <div id="_stats"></div>
     </div>
-    <div id="_instructions">
-      Do <select id="_drillsize" name="drillsize">
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-      </select> problems.
-      <input type="button" onclick="startDrill();" value="Start"></input>
-    </div>
-    <div id="_stats">
+    <div id="_statsTemplate" style="display: none">
       You got <b>%correct%</b> correct out of <b>%total%</b>.<br>
       It took you <b>%elapsed%</b> to complete these problems.<br>
       You paused <b>%paused%</b> times.<br>
       %wrongAnswers%<br>
+
+      <input type="button" value="Go Again" onclick="_showFrame('start')">
     </div>
   </body>
 </html>
