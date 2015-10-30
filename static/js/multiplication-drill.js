@@ -104,6 +104,16 @@ MultiplicationDrill = function(parent, config) {
 
   var bb = bigbang(parent[0], {
     interval: 100,
+    onmouse: function(e) {
+      if (running && e.type === 'mousedown') {
+        e.preventDefault();
+        if (paused) {
+          bb.start();
+        } else {
+          bb.pause();
+        }
+      }
+    },
     onstart: function() {
       running = true;
       paused = false;
