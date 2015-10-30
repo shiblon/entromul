@@ -1,2 +1,4 @@
 # entromul
-Multiplication drills for my kids.
+
+Browser-based multiplication drills for my kids.
+Works in desktop and mobile (hopefully equally well).
