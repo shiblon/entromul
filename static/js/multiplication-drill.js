@@ -68,24 +68,34 @@ MultiplicationDrill = function(parent, config) {
     fields.question.text(q1 + ' \u00D7 ' + q2 + ' =  ');
   }
 
+  function submitAnswer() {
+    if (!running) {
+      return;
+    }
+    var answer = fields.answer.val();
+    if (answer === '') {
+      return;
+    }
+    cur++;
+    answers.push(answer);
+    fields.answer.val('');
+    showProblem();
+  }
+
   fields.body.hide();
   fields.pauseBody.hide();
 
   fields.answerForm.submit(function(e) {
     e.preventDefault();
-    if (!running) {
-      return false;
-    }
-    var answer = fields.answer.val();
-    if (answer === '') {
-      return false;
-    }
-    cur++;
-    answers.push(answer);
-
-    fields.answer.val('');
-    showProblem();
+    submitAnswer();
     return false;
+  });
+
+  fields.answer.on('keydown', function(e) {
+    if (e.which === 9) { // tab key (Android Done key)
+      e.preventDefault();
+      submitAnswer();
+    }
   });
 
   var elapsed = 0;
@@ -107,7 +117,6 @@ MultiplicationDrill = function(parent, config) {
       numPauses++;
       fields.body.hide();
       fields.pauseBody.show();
-      fields.answerForm.focus();
     },
     onstop: function() {
       running = false;
