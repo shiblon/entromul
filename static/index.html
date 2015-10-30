@@ -1,6 +1,10 @@
 <!DOCTYPE "html">
 <html>
   <head>
+    <meta name="viewport"
+          content="
+            width = device-width,
+            height= device-height"/>
     <script src="js/jquery.min.js"></script>
     <script src="js/jcanvas.min.js"></script>
     <script src="js/lodash.min.js"></script>
@@ -128,6 +132,7 @@
         font-size: 20pt;
         font-family: serif;
         font-weight: normal;
+        overflow: auto;
       }
       #_instructions {
         padding: 10px 5px;
@@ -147,6 +152,15 @@
       input#_startBtn {
         -webkit-appearance: button;
         font-size: 30pt;
+      }
+      input#_goAgain {
+        -webkit-appearance: button;
+        font-size: 30pt;
+      }
+      div#_again {
+        left: 0;
+        width: 100%;
+        text-align: center;
       }
     </style>
   </head>
@@ -171,7 +185,7 @@
       You paused <b>%paused%</b> times.<br>
       %wrongAnswers%<br>
 
-      <input type="button" value="Go Again" onclick="_showFrame('start')">
+      <div id="_again"><input id="_goAgain" type="button" value="Go Again" onclick="_showFrame('start')"></div>
     </div>
   </body>
 </html>
