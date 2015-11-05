@@ -104,10 +104,15 @@ function bigbang(target, config) {
     return true;
   });
 
+  var running = false;
+  var paused = false;
+
   function start() {
     if (!aloop) {
       return false;
     }
+    running = true;
+    paused = false;
     onstart();
     aloop.start();
     return true;
@@ -118,6 +123,8 @@ function bigbang(target, config) {
       return false;
     }
     aloop.stop();
+    running = true;
+    paused = true;
     onpause();
     return true;
   }
@@ -128,10 +135,25 @@ function bigbang(target, config) {
     }
     aloop.stop();
     aloop = null;
+    running = false;
+    paused = false;
     removeListeners();
     onstop();
     return true;
   }
 
-  return {'start': start, 'pause': pause, 'stop': stop};
+  function state() {
+    if (!aloop) {
+      return 'stop';
+    }
+    if (!running) {
+      return 'init';
+    }
+    if (paused) {
+      return 'pause';
+    }
+    return 'run';
+  }
+
+  return {'start': start, 'pause': pause, 'stop': stop, 'state': state};
 }

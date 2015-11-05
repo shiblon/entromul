@@ -68,8 +68,58 @@ MultiplicationDrill = function(parent, config) {
     fields.question.text(q1 + ' \u00D7 ' + q2 + ' =  ');
   }
 
+  var elapsed = 0;
+
+  var bb = bigbang(parent[0], {
+    interval: 100,
+    onmouse: function(e) {
+      if (bb.state() === 'run' && e.type === 'mousedown') {
+        e.preventDefault();
+        bb.pause();
+      } else if (bb.state() === 'pause' && e.type === 'mousedown') {
+        e.preventDefault();
+        bb.start();
+      }
+    },
+    onstart: function() {
+      fields.pauseBody.hide();
+      fields.body.show();
+      showProblem();
+    },
+    onpause: function() {
+      numPauses++;
+      fields.body.hide();
+      fields.pauseBody.show();
+    },
+    onstop: function() {
+      var correct = [],
+        wrong = [];
+      for (var i = 0; i < problems.length; i++) {
+        var prob = problems[i],
+            m1 = prob[0]|0,
+            m2 = prob[1]|0,
+            a = answers[i]|0;
+        if (m1 * m2 === a) {
+          correct.push([m1, m2, a]);
+        } else {
+          wrong.push([m1, m2, a]);
+        }
+      }
+      onFinished(correct, wrong, formatTime(elapsed), numPauses);
+    },
+    ontick: function(t, dt) {
+      elapsed = t / 1000;
+      if (cur >= numProblems) {
+        return false;
+      }
+      showClock();
+      showProgress();
+      fields.answer.focus();
+    },
+  });
+
   function submitAnswer() {
-    if (!running) {
+    if (bb.state() !== 'run') {
       return;
     }
     var answer = fields.answer.val();
@@ -96,66 +146,6 @@ MultiplicationDrill = function(parent, config) {
       e.preventDefault();
       submitAnswer();
     }
-  });
-
-  var elapsed = 0;
-  var running = false;
-  var paused = false;
-
-  var bb = bigbang(parent[0], {
-    interval: 100,
-    onmouse: function(e) {
-      if (running && e.type === 'mousedown') {
-        e.preventDefault();
-        if (paused) {
-          bb.start();
-        } else {
-          bb.pause();
-        }
-      }
-    },
-    onstart: function() {
-      running = true;
-      paused = false;
-      fields.pauseBody.hide();
-      fields.body.show();
-      showProblem();
-    },
-    onpause: function() {
-      running = true;
-      paused = true;
-      numPauses++;
-      fields.body.hide();
-      fields.pauseBody.show();
-    },
-    onstop: function() {
-      running = false;
-      paused = false;
-
-      var correct = [],
-        wrong = [];
-      for (var i = 0; i < problems.length; i++) {
-        var prob = problems[i],
-            m1 = prob[0]|0,
-            m2 = prob[1]|0,
-            a = answers[i]|0;
-        if (m1 * m2 === a) {
-          correct.push([m1, m2, a]);
-        } else {
-          wrong.push([m1, m2, a]);
-        }
-      }
-      onFinished(correct, wrong, formatTime(elapsed), numPauses);
-    },
-    ontick: function(t, dt) {
-      elapsed = t / 1000;
-      if (cur >= numProblems) {
-        return false;
-      }
-      showClock();
-      showProgress();
-      fields.answer.focus();
-    },
   });
 
   this.start = bb.start;
@@ -340,7 +330,6 @@ Countdown = function(parent, config) {
   var fields = this._makeContainer(parent);
 
   fields.counter.hide();
-  fields.counter.text(remaining);
 
   var bb = bigbang(parent[0], {
     interval: 100,
@@ -359,6 +348,7 @@ Countdown = function(parent, config) {
       }
     },
     onstart: function() {
+      fields.counter.text(remaining);
       fields.counter.show();
     },
     onstop: function() {
