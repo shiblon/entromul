@@ -71,7 +71,7 @@ MultiplicationDrill = function(parent, config) {
   var elapsed = 0;
 
   var bb = bigbang(parent[0], {
-    interval: 100,
+    interval: 250,
     onmouse: function(e) {
       if (bb.state() === 'run' && e.type === 'mousedown') {
         e.preventDefault();

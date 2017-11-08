@@ -1,7 +1,26 @@
 // Creates an animation loop that will call the given callback(dt) for
 // every animation frame. Returns an object with a "start" and "stop"
 // function used to control the loop.
-function animloop(callback) {
+function animloop(callback, interval) {
+  var frame = (function() {
+    // Use a less cpu-intensive approach for longer intervals.
+    if (interval == null || interval < 50) {
+      return requestAnimationFrame;
+    }
+    var start = new Date().getTime();
+    return function(onFrame) {
+      setTimeout(function() {
+        onFrame(new Date().getTime() - start);
+      }, interval + 1); // make it always a smidge late so that logic works consistently below.
+    };
+  }());
+
+  // Clamp time changes to 35ms or 2*interval, whichever is larger.
+  var clamp = 35;
+  if (interval != null && interval > 50) {
+    clamp = 2 * interval;
+  }
+
   var last_ts = null;
   var repeat = true;
   function step(ts) {
@@ -11,20 +30,17 @@ function animloop(callback) {
     if (!repeat) {
       return;
     }
-    // Clamp time changes to 75 ms, since they should only ever be that long if
-    // the tab disappears or the game is otherwise paused. We don't want
-    // wormholes.
-    var ret = callback(Math.min(ts - last_ts, 75));
+    frame(step);
+    var ret = callback(Math.min(ts - last_ts, clamp));
     last_ts = ts;
     if (ret === false) {
       return;
     }
-    requestAnimationFrame(step);
   }
   return {
     "start": function() {
       repeat = true;
-      requestAnimationFrame(step);
+      frame(step);
     },
     "stop": function() {
       repeat = false;
@@ -102,7 +118,7 @@ function bigbang(target, config) {
       return false;
     }
     return true;
-  });
+  }, interval);
 
   var running = false;
   var paused = false;
